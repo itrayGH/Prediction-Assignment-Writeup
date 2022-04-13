@@ -1,0 +1,145 @@
+---
+title: "Coursera: Practical Machine Learning Peer-graded Assignment"
+author: "Raymond Tsang"
+date: "Apr 2022"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 10
+    df_print: paged
+    toc: yes
+  html_notebook:
+    toc: yes
+---
+
+
+**********************
+# Goal of the project
+**********************
+
+The goal of this project is to predict the manner in which participants did the exercise.
+
+**********************
+# Background
+**********************
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal of this project is to produce Decision Tree algorithm that predict the "classe" variable, which is a classifier of the manner in which the participants did the exercise. This project will be processed by below steps:
+
+  1) Collecting Data
+  2) Data cleaning and Pre-processing
+  3) Training the Model
+  4) Evaluating the Model
+  5) Making Predictions
+  6) Evaluating the accuracy of the model
+  7) Parameter Tuning
+
+**********************
+# Collecting Data
+**********************
+Import the training and testing data sets from the source. Machines initially learn from the data that you give them. 
+
+```{r}
+pml.training <- read.csv("pml-training.csv", header=TRUE)
+pml.testing <- read.csv("pml-testing.csv", header=TRUE)
+```
+
+Show the dimensions of training and testing data sets.
+
+```{r}
+dim(pml.training)
+dim(pml.testing)
+```
+
+Both data sets have 160 columns, with 19622 observations in training and 20 in testing.
+
+**********************
+# Data cleaning and Pre-processing
+**********************
+
+After we have our data, we have to prepare it by:
+
+  1) Cleaning the data to remove unwanted data, missing values, rows, and columns.
+  2) Splitting the cleaned data into two sets - a training set and a testing set. The training set is the set the model learns from. A testing set is used to check the accuracy of the model after training.
+
+**********************
+## Cleaning the data
+**********************
+Removing columns with NA's from the datasets.
+
+```{r}
+pml.training[pml.training == ""] <- NA
+pml.testing[pml.testing== ""] <- NA
+na.sums <- colSums(is.na(pml.training))
+na.mark <- names(na.sums[na.sums>0])
+pml.training <- pml.training[ , !names(pml.training) %in% na.mark]
+pml.testing <- pml.testing[ , !names(pml.testing) %in% na.mark]
+```
+
+Both training and testing data sets have 60 columns after data cleaning. 
+
+```{r}
+dim(pml.training)
+dim(pml.testing)
+```
+
+Remove the first 7 variables in the datasets since they are not applicable predictors for the problem.
+```{r}
+pml.training <- pml.training[, -c(1:7)]
+pml.testing <- pml.testing[, -c(1:7)]
+```
+
+Both training and testing data sets have 53 columns after data cleaning.
+
+```{r}
+dim(pml.training)
+dim(pml.testing)
+```
+
+**********************
+## Splitting the cleaned data into two sets - a training set and a testing set.
+**********************
+
+Now we split the training dataset into training and testing datasets to enable cross-validation and estimate the out-of-sample error rate of the prediction algorithm. In this case, I split the data into 70% training and 30% testing. 
+
+```{r}
+library(caret)
+set.seed(888)
+Train <- createDataPartition(y=pml.training$classe,p=0.7,list = FALSE)
+training <- pml.training[Train, ]
+testing <- pml.training[-Train, ]
+```
+
+
+**********************
+# Training the Model: Decision Tree
+**********************
+Training is the most important step in machine learning. In training, I pass the prepared data to the machine learning model to find patterns and make predictions. It results in the model learning from the data so that it can accomplish the task set. I apply the decision tree algorithm to the training dataset and plot the final model:
+
+```{r}
+library(rattle)
+set.seed(888)
+DTFit <- train(classe ~ ., method="rpart", data = training)
+print(DTFit$finalModel)
+fancyRpartPlot(DTFit$finalModel)
+```
+
+**********************
+# Evaluating the Model, Making Predictions and Evaluating the accuracy of the model
+**********************
+
+After training the model, I have to check to see how it’s performing. This is done by testing the performance of the model on previously unseen data. The unseen data used is the testing set that I split the data into earlier. If testing was done on the same data which is used for training, I will not get an accurate measure, as the model is already used to the data, and finds the same patterns in it, as it previously did. This will give me disproportionately high accuracy. 
+
+```{r}
+set.seed(888)
+testing$classe <- as.factor(testing$classe)
+DTPred <- predict(DTFit, newdata = testing)
+DTCM <- confusionMatrix(DTPred, testing$classe)
+DTCM
+```
+
+In the above I have used cross validation with the testing data set formed as part of the data pre-processing earlier. The accuracy is 56.13%.
+
+**********************
+# Parameter Tuning
+**********************
+Once you have created and evaluated your model, see if its accuracy can be improved in any way. This is done by tuning the parameters present in your model. Parameters are the variables in the model that the programmer generally decides. At a particular value of your parameter, the accuracy will be the maximum. Parameter tuning refers to finding these values.
+
