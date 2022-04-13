@@ -1,2 +1,2 @@
-# pred_assign_writeup
-Prediction Assignment Writeup
+R markdown: Prediction_Assignment.Rmd
+Compiled HTML file describing my analysis: Prediction_Assignment.html
